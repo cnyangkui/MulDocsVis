@@ -174,6 +174,7 @@ export default {
           zoom: 1
         })
       });
+      
       this.map.on("moveend", function(e) {
         instance.zoom = instance.map.getView().getZoom(); //获取当前地图的缩放级别
         console.log("zoom: " + instance.zoom);
