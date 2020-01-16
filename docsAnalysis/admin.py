@@ -1,17 +1,16 @@
 from django.contrib import admin
-from docsAnalysis.models import Document, DocSim
+from docsAnalysis.models import Document
 
 
 # Register your models here.
 class DocumentAdmin(admin.ModelAdmin):
-    list_display = ('did', 'content', 'keywords')
-    search_fields = ('did', 'content', 'keywords')
+    list_display = ('did', 'content', 'keywords', 'proj')
+    search_fields = ('did', 'content', 'keywords', 'proj')
 
 
-class DocSimAdmin(admin.ModelAdmin):
-    list_display = ('sid', 'doc1', 'doc2', 'value')
-    search_fields = ('sid', 'doc1', 'doc2', 'value')
-
+# class DocSimilarityAdmin(admin.ModelAdmin):
+#     list_display = ('doc1', 'doc2', 'similarity')
+#     search_fields = ('doc1', 'doc2', 'similarity')
 
 admin.site.register(Document, DocumentAdmin)
-admin.site.register(DocSim, DocSimAdmin)
+# admin.site.register(DocSimilarity, DocSimilarityAdmin)

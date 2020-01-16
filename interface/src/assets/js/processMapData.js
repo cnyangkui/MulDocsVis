@@ -11,9 +11,9 @@ import Graph from "./dijkstra.js";
  *  mapExtent: Array [minx, miny, maxx, maxy]
  * }
  */
-function getExtent(projdata) {
-  let xExt = d3.extent(projdata, d => d.x);
-  let yExt = d3.extent(projdata, d => d.y);
+export function getExtent(projdata) {
+  let xExt = d3.extent(projdata, d => d[0]);
+  let yExt = d3.extent(projdata, d => d[1]);
   let x = xExt[1] - xExt[0] > yExt[1] - yExt[0] ? xExt : yExt;
   let y = xExt[1] - xExt[0] < yExt[1] - yExt[0] ? xExt : yExt;
   let dataExtent = [x[0], y[0], x[1], y[1]];
@@ -36,7 +36,7 @@ function getExtent(projdata) {
  * @param {number} pointNum int
  * @returns Array 数组中每个元素是一个坐标 [x, y]
  */
-function generateOuterPoints(dataExtent, mapExtent, pointNum) {
+export function generateOuterPoints(dataExtent, mapExtent, pointNum) {
   let outerPoints = [];
   for (let i = 0; i < pointNum; i++) {
     let tmp = i % 4;
@@ -69,7 +69,7 @@ function generateOuterPoints(dataExtent, mapExtent, pointNum) {
  * @param {number} innerYNum int
  * @returns {Array} 数组中每个元素是一个坐标 [x, y]
  */
-function generateInnerPoints(projdata, dataExtent, innerXNum, innerYNum) {
+export function generateInnerPoints(projdata, dataExtent, innerXNum, innerYNum) {
   let innerPoints = [];
   let xspan =
     (dataExtent[2] - dataExtent[0]) / innerXNum;
@@ -92,8 +92,8 @@ function generateInnerPoints(projdata, dataExtent, innerXNum, innerYNum) {
     grid.push(row);
   }
   for (let i = 0, len = projdata.length; i < len; i++) {
-    let x = xScale(projdata[i].x);
-    let y = yScale(projdata[i].y);
+    let x = xScale(projdata[i][0]);
+    let y = yScale(projdata[i][1]);
     grid[x][y]++;
   }
   for (let i = 0; i < innerXNum; i++) {
@@ -121,7 +121,7 @@ function generateInnerPoints(projdata, dataExtent, innerXNum, innerYNum) {
  * @param {number} mapIterationNum int, 迭代次数
  * @returns {Array} 数组中每一个元素表示一个多边形
  */
-function getVoronoi(mapExtent, allPoints, mapIterationNum) {
+export function getVoronoi(mapExtent, allPoints, mapIterationNum) {
   let cells = d3
     .voronoi()
     .extent([
@@ -136,9 +136,11 @@ function getVoronoi(mapExtent, allPoints, mapIterationNum) {
     return pg;
   });
   // Voronoi每次选取多边形中心，重新绘制，多次迭代后网格趋向于六边形
-  let centerPoints = [];
   for (let i = 0; i < mapIterationNum; i++) {
-    centerPoints = polygons.map(d => d3.polygonCentroid(d));
+    let centerPoints = [];
+    polygons.forEach(d => {
+      centerPoints.push(d3.polygonCentroid(d));
+    });
     cells = d3
       .voronoi()
       .extent([

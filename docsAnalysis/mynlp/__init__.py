@@ -28,6 +28,7 @@ class Corpus(object):
         self.__bow_corpus = None
         self.__tfidf_corpus = None
         self.__tfidf_model = None
+        self.__similarity_index = None
 
         self.set_stop_words(_get_abs_path(u'哈工大停用词表.txt'))
 
@@ -62,13 +63,20 @@ class Corpus(object):
         self.__tfidf_model = models.TfidfModel(self.__bow_corpus)
         self.__tfidf_corpus = self.__tfidf_model[self.__bow_corpus]
 
-    def get_similarity_matrix(self):
+    def cal_similarity_matrix(self):
         """计算文档相似性矩阵"""
         index_temp = get_tmpfile("index")
-        index = similarities.Similarity(index_temp, self.__tfidf_corpus, num_features=len(self.__dictionary))
+        self.__similarity_index = similarities.Similarity(index_temp, self.__tfidf_corpus, num_features=len(self.__dictionary))
         # index = similarities.MatrixSimilarity(self.__tfidf_corpus)
-        sim_matrix = np.array(index, dtype='float')
+        sim_matrix = np.array(self.__similarity_index, dtype='float')
         return np.around(sim_matrix, 5).tolist()
+
+    def save_similarity_index(self, file_path):
+        if self.__similarity_index:
+            self.__similarity_index.save(file_path)
+        else:
+            return Exception(u"先计算相似性矩阵才能保存...")
+
 
     def proj_docs(self, n_components=2):
         """文档投影"""
