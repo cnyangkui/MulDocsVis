@@ -63,6 +63,6 @@ def import_doc_keywords(file_path):
 
 if __name__ == '__main__':
     import_doc_content(u'Y:/yk-file/文本数据/THUCNews/财经5000')
-    import_doc_proj(u'../output/proj.json')
-    import_doc_keywords(u'../output/keywords.json')
+    import_doc_proj(u'../output/finance/proj.json')
+    import_doc_keywords(u'../output/finance/keywords.json')
     # import_docsim(u'../output/sim_matrix.json')

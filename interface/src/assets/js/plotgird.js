@@ -1,0 +1,8 @@
+class GridMap {
+
+  constructor(width) {
+
+  }
+
+
+}

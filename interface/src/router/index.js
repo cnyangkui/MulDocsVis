@@ -1,6 +1,6 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
-import DocsMap from '../components/Map.vue'
+import DocsMap from '../components/DocsMap.vue'
 
 Vue.use(VueRouter)
 

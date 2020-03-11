@@ -1,11 +1,13 @@
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
-from docsAnalysis.models import Document
 import os
 import json
 import numpy as np
-from gensim import similarities
-import pprint
+
+from docsAnalysis.mynlp import base_analysis
+from docsAnalysis.mynlp import wr_tmp_data
+
+corpus = wr_tmp_data.load_corpus_info()
 
 # Create your views here.
 def _read_json(file_path):
@@ -14,16 +16,43 @@ def _read_json(file_path):
         obj = json.loads(f.read())
     return obj
 
-_get_abs_path = lambda path: os.path.normpath(os.path.join(os.path.dirname(__file__), path))
-
-similarity_index = similarities.MatrixSimilarity.load(_get_abs_path(u'output/similarity.index'))
-
 def proj(request):
-    return JsonResponse({'projlist': _read_json(_get_abs_path(u'output/proj.json'))})
+    # return JsonResponse({'datum': _read_json(_get_abs_path(u'output/nCovMemory/proj.json'))})
+    pass
 
 def similarity(request):
-    sim_list = similarity_index.similarity_by_id(1)
-    sim_list = sim_list.astype(np.float)
-    sim_list = np.around(sim_list, 5).tolist()
+    pass
 
-    return HttpResponse(sim_list)
+def extra_keywords_by_id(request):
+    """根据文档id抽取关键词"""
+    params = request.GET
+    keywords = base_analysis.extra_keywords_by_id(corpus, docid=int(params.get('id')), n_min=params.get('n_min', 5), ratio=params.get('ratio', 0.05), with_weight=params.get('with_weight', False))
+    return JsonResponse({'datum': keywords})
+
+
+def get_common_keywords(request):
+    """抽取文档的公共关键词"""
+    params = request.GET
+    keywords = base_analysis.get_common_keywords(corpus, id1=int(params.get('id1')), id2=int(params.get('id2')))
+    return JsonResponse({'datum': keywords})
+
+
+def get_common_words(request):
+    """获取两个文档的公共词"""
+    params = request.GET
+    common_words = base_analysis.get_common_words(corpus, int(params.get('id1')), int(params.get('id2')))
+    return JsonResponse({'datum': common_words})
+
+
+def similarity_by_id(request):
+    """获取一个文档与其它所有文档的相似度"""
+    params = request.GET
+    res = base_analysis.similarity_by_id(corpus, id=int(params.get('id')))
+    return JsonResponse({'datum': res})
+
+
+def similarity_by_ids(request):
+    """获取两个文档间的相似度"""
+    params = request.GET
+    res = base_analysis.similarity_by_ids(corpus, id1=int(params.get('id1')), id2=int(params.get('id2')))
+    return JsonResponse({'datum': res})
