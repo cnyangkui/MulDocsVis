@@ -24,9 +24,10 @@ urlpatterns = [
     path('proj/', views.proj),
     path('similarity/', views.similarity),
     path('extra_keywords_by_id/', views.extra_keywords_by_id),
-    path('get_common_keywords/', views.get_common_keywords),
     path('similarity_by_id/', views.similarity_by_id),
     path('similarity_by_ids/', views.similarity_by_ids),
-    path('get_common_words/', views.get_common_words)
+    path('api/commonwords/', views.get_common_words),
+    path('api/keywords/', views.get_keywords),
+    path('api/htree/', views.get_htree),
 
 ]

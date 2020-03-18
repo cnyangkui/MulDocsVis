@@ -16,3 +16,10 @@ def write_csv(desc, obj):
         writer.writeheader()
         for o in obj:
             writer.writerow(o)
+
+
+def read_json(file_path):
+    """读取json文件，返回json对象"""
+    with open(file_path, 'r', encoding='utf-8') as f:
+        obj = json.loads(f.read())
+    return obj

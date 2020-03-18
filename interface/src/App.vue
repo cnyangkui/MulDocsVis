@@ -21,9 +21,9 @@ body {
   padding: 0;
   overflow-y: hidden;
 }
-* {
-  border: 0.1px red solid;
-}
+// * {
+//   border: 0.1px red solid;
+// }
 #app {
   width: 100%;
   height: 100%;

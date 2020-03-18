@@ -5,8 +5,8 @@ from django.db import models
 class Document(models.Model):
     did = models.IntegerField(primary_key=True)
     content = models.TextField()
-    keywords = models.CharField(max_length=200)
-    proj = models.CharField(max_length=50)
+    # keywords = models.CharField(max_length=200)
+    # proj = models.CharField(max_length=50)
 
 
 # class DocSimilarity(models.Model):

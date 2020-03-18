@@ -4,7 +4,6 @@
   </div>
 </template>
 <script>
-import * as api from "../assets/js/http.js";
 import {
   getExtent,
   getVoronoi,
@@ -37,6 +36,7 @@ import {
   Fill as olstyle_Fill,
   Stroke as olstyle_Stroke
 } from "ol/style";
+import {getRequest} from "../assets/js/api.js";
 export default {
   name: "DocsMap",
   data() {
@@ -46,7 +46,7 @@ export default {
         docpointLayer: null,
         voronoiLayer: null,
         canvasLayer: null,
-        gridlineLayer: null,
+        gridlineLayer: null
       },
       mapConfig: {
         extent: null
@@ -57,11 +57,18 @@ export default {
     };
   },
   async mounted() {
-    let proj = await api.getProj();
-    this.data.projList = proj.data.datum;
-    this.preProcess();
-    this.initMap();
-    this.addLayers();
+    getRequest("/commonwords", {
+      ids: [1,2]
+    }, function(res) {
+      console.log(res);
+    }, function (errcode, errmsg) {
+        console.log('code ' + errcode + ' ,meaasge ' + errmsg)
+      })
+    // let proj = await api.getProj();
+    // this.data.projList = proj.data.datum;
+    // this.preProcess();
+    // this.initMap();
+    // this.addLayers();
   },
   methods: {
     preProcess() {
@@ -192,9 +199,14 @@ export default {
       return layer;
     },
     addGridlineLayer() {
-      const cellWidth = (this.mapConfig.extent[2] - this.mapConfig.extent[0]) / 50;
-      let innerXNum = Math.ceil((this.mapConfig.extent[2] - this.mapConfig.extent[0]) / cellWidth);
-      let innerYNum = Math.ceil((this.mapConfig.extent[3] - this.mapConfig.extent[1]) / cellWidth);
+      const cellWidth =
+        (this.mapConfig.extent[2] - this.mapConfig.extent[0]) / 50;
+      let innerXNum = Math.ceil(
+        (this.mapConfig.extent[2] - this.mapConfig.extent[0]) / cellWidth
+      );
+      let innerYNum = Math.ceil(
+        (this.mapConfig.extent[3] - this.mapConfig.extent[1]) / cellWidth
+      );
       let xScale = d3
         .scaleQuantize()
         .domain([this.mapConfig.extent[0], this.mapConfig.extent[2]])
@@ -213,14 +225,17 @@ export default {
         // 画竖线
         let feature = new ol_Feature({
           geometry: new olgeom_LineString([
-            [this.mapConfig.extent[0] + i * cellWidth, this.mapConfig.extent[1]],
+            [
+              this.mapConfig.extent[0] + i * cellWidth,
+              this.mapConfig.extent[1]
+            ],
             [this.mapConfig.extent[0] + i * cellWidth, this.mapConfig.extent[3]]
           ])
         });
         feature.setStyle(
           new olstyle_Style({
             stroke: new olstyle_Stroke({
-              color: "rgb(255, 165, 0, 0.3)",
+              color: "rgb(255, 165, 0, 0.3)"
             })
           })
         );
@@ -230,14 +245,17 @@ export default {
         // 画横线
         let feature = new ol_Feature({
           geometry: new olgeom_LineString([
-            [this.mapConfig.extent[0], this.mapConfig.extent[1] + i * cellWidth],
+            [
+              this.mapConfig.extent[0],
+              this.mapConfig.extent[1] + i * cellWidth
+            ],
             [this.mapConfig.extent[2], this.mapConfig.extent[1] + i * cellWidth]
           ])
         });
         feature.setStyle(
           new olstyle_Style({
             stroke: new olstyle_Stroke({
-              color: "rgb(255, 165, 0, 0.3)",
+              color: "rgb(255, 165, 0, 0.3)"
             })
           })
         );

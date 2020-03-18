@@ -15,7 +15,6 @@ from sklearn.cluster import KMeans
 
 _get_abs_path = lambda path: os.path.normpath(os.path.join(os.path.dirname(__file__), path))
 
-
 class Corpus(object):
 
     def __init__(self, corpus):
@@ -24,7 +23,7 @@ class Corpus(object):
         self.stopwords = list()
         self.tokenize_config = {
             'min_freq': 5,
-            'with_pos': ['n', 'nr', 'ns', 'nt', 'nw', 'nz', 'a', 'PER', 'LOC', 'ORG']
+            'with_pos': ['n', 'nr', 'ns', 'nt', 'nw', 'nz', 'a', 'v', 'vn', 'x', 'PER', 'LOC', 'ORG']
         }
         self.__dictionary = None
         self.__bow_corpus = None
@@ -33,6 +32,7 @@ class Corpus(object):
         self.__similarity_index = None
 
         self.set_stop_words(_get_abs_path(u'哈工大停用词表.txt'))
+        jieba.load_userdict(_get_abs_path('dict.txt'))
 
     @property
     def dictionary(self):
@@ -137,7 +137,7 @@ class Corpus(object):
 
 
     def lda(self, num_topics=2):
-        lda = models.LdaModel(corpus=self.__bow_corpus, id2word=self.__dictionary, num_topics=num_topics)
+        lda = models.LdaModel(corpus=self.__tfidf_corpus, id2word=self.__dictionary, num_topics=num_topics)
         pprint.pprint(lda.print_topics(num_topics=num_topics, num_words=20))  # 把所有的主题打印出来看看
 
 

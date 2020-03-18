@@ -4,8 +4,8 @@ from docsAnalysis.models import Document
 
 # Register your models here.
 class DocumentAdmin(admin.ModelAdmin):
-    list_display = ('did', 'content', 'keywords', 'proj')
-    search_fields = ('did', 'content', 'keywords', 'proj')
+    list_display = ('did', 'content')
+    search_fields = ('did', 'content')
 
 
 # class DocSimilarityAdmin(admin.ModelAdmin):

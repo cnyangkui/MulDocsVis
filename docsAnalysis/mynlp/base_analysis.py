@@ -7,12 +7,21 @@ from functools import reduce
 from gensim import corpora, models, similarities, matutils
 from gensim.test.utils import get_tmpfile
 import numpy as np
+import jieba
+import jieba.analyse
 from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans
 
 from docsAnalysis.mynlp import wr_tmp_data
 
-corpus = wr_tmp_data.load_corpus_info()
+corpus = wr_tmp_data.load_corpus_base_info()
+
+_get_abs_path = lambda path: os.path.normpath(os.path.join(os.path.dirname(__file__), path))
+
+jieba.load_userdict(_get_abs_path('dict.txt'))
+print("load dict.txt...")
+jieba.analyse.set_stop_words(_get_abs_path('哈工大停用词表.txt'))
+print("load 哈工大停用词表...")
 
 
 def proj_docs(corpus, n_components=2):
@@ -58,10 +67,12 @@ def similarity_by_id(corpus, id):
     res = np.around(res, 5)
     return res.tolist()
 
+
 def similarity_by_ids(corpus, id1, id2):
     """获取两个文档间的相似度"""
     res = similarity_by_id(corpus, id1)
     return res[id2]
+
 
 def extra_keywords_by_id(corpus, id=None, n_min=5, ratio=0.05, with_weight=False):
     """
@@ -78,7 +89,7 @@ def extra_keywords_by_id(corpus, id=None, n_min=5, ratio=0.05, with_weight=False
     """
     if id is None:
         return None
-    words = corpus['tfidfcorpus'][id]
+    words = corpus['tfidfcorpus'][int(id)]
     n_radio = math.floor(len(words) * ratio)
     n = n_radio if n_radio > n_min else n_min
     words.sort(key=lambda d: d[1], reverse=True)
@@ -89,34 +100,72 @@ def extra_keywords_by_id(corpus, id=None, n_min=5, ratio=0.05, with_weight=False
         return list(map(lambda d: corpus['dictionary'][d[0]], words))
 
 
-def get_common_keywords(corpus, id1, id2):
-    """获取两个文档公共的关键词"""
-    words1 = set(extra_keywords_by_id(corpus, id1))
-    words2 = set(extra_keywords_by_id(corpus, id2))
-    intersection = words1 & words2
-    return list(intersection) if len(intersection) > 0 else None
+def get_common_keywords(corpus, ids=list(), n_min=5, ratio=0.05):
+    """获取文档公共的关键词"""
+    intersection = set()
+    for id in ids:
+        words = set(extra_keywords_by_id(corpus, int(id), n_min=n_min, ratio=ratio))
+        if intersection:
+            intersection = intersection & words
+        else:
+            intersection = words
+    return list(intersection)
 
 
-def get_common_words(corpus, id1, id2):
-    """获取两个文档的公共词
+def get_common_words(corpus, ids=list()):
+    """获取给定所有文档的公共词
     Args:
-        id1: 第一篇文档的id
-        id2：第二篇文档的id
+        ids: [id1, id2, ...]
     Returns:
-        {commonwords: list, ratio: float}
-        commonwords为公共词，ratio为公共词占所有词的比例
+        list, 公共词
     """
-    docbow1 = corpus['doc2bow'][id1]
-    docbow2 = corpus['doc2bow'][id2]
-    words1 = set(map(lambda d: d[0], docbow1))
-    words2 = set(map(lambda d: d[0], docbow2))
-    intersection = words1 & words2
-    union = words1 | words2
-    return {
-        'commonwords': [corpus['dictionary'][index] for index in intersection],
-        'ratio': len(intersection) / len(union)
-    }
+    intersection = set()
+    count = 0
+    for id in ids:
+        bow = corpus['doc2bow'][int(id)]
+        wordset = set(map(lambda d: d[0], bow))
+        if count == 0:
+            intersection = wordset
+        else:
+            intersection = intersection & wordset
+        count += 1
+    return [corpus['dictionary'][wordindex] for wordindex in intersection]
 
 
-a = get_common_words(corpus, 103, 100)
-pprint.pprint(a)
+def build_tfidf_vsm(corpus):
+    features = matutils.corpus2dense(corpus['tfidfcorpus'], num_terms=len(corpus['dictionary'].keys()),
+                                     num_docs=len(corpus['doc2bow'])).T
+    return features
+
+
+def jieba_extra_keywords_from_doc(sentence='', topK=20, withWeight=False):
+    """使用jieba抽取一个文本的关键词"""
+    keywords = jieba.analyse.extract_tags(sentence, topK=topK, withWeight=withWeight, allowPOS=(
+        'n', 'nr', 'ns', 'nt', 'nw', 'nz', 'a', 'v', 'vn', 'x', 'PER', 'LOC', 'ORG'))
+    return keywords
+
+
+def jieba_extra_keywords_from_docs(sentences=list(), topK=20):
+    """使用jieba抽取多个文本的公共关键词"""
+    common_keywords = set()
+    count = 0
+    for sentence in sentences:
+        keywords = jieba.analyse.extract_tags(sentence, topK=topK, withWeight=False, allowPOS=(
+            'n', 'nr', 'ns', 'nt', 'nw', 'nz', 'a', 'v', 'vn', 'x', 'PER', 'LOC', 'ORG'))
+        keywords = set(keywords)
+        if count == 0:
+            common_keywords = keywords
+        else:
+            common_keywords = common_keywords & keywords
+        count += 1
+    return list(common_keywords)
+
+
+def lda(corpus, num_topics=10, num_words=20):
+    lda = models.LdaModel(corpus=corpus['doc2bow'], id2word=corpus['dictionary'], num_topics=num_topics)
+    pprint.pprint(lda.print_topics(num_topics=num_topics, num_words=num_words))  # 把所有的主题打印出来看看
+
+
+# corpus = wr_tmp_data.load_corpus_base_info()
+# lda(corpus, 100, 100)
+# get_common_words(corpus, [1, 2, 3])
