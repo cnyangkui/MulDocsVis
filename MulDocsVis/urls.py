@@ -29,5 +29,6 @@ urlpatterns = [
     path('api/commonwords/', views.get_common_words),
     path('api/keywords/', views.get_keywords),
     path('api/htree/', views.get_htree),
+    path('api/documents/', views.get_docs),
 
 ]

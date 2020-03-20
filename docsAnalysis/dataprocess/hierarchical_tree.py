@@ -18,8 +18,13 @@ for index, row in enumerate(Z):
     n1, n2 = int(row[0]), int(row[1])
     print(index, n1, n2, len(nodes))
     key = rows + index + 1
-    new_node = {'name': key, 'children': [
-        nodes[n1], nodes[n2]
-    ]}
+    new_node = {
+        'name': key,
+        'distance': round(row[2], 6),
+        'size': row[3],
+        'children': [
+            nodes[n1], nodes[n2]
+        ]
+    }
     nodes.append(new_node)
-utils.write_json(nodes[-1], 'htree.json')
+utils.write_json(nodes[-1], '../output/nCovMemory/htree.json')

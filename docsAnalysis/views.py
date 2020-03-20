@@ -13,6 +13,7 @@ corpus = wr_tmp_data.load_corpus_base_info()
 
 _get_abs_path = lambda path: os.path.normpath(os.path.join(os.path.dirname(__file__), path))
 
+
 # Create your views here.
 def proj(request):
     # return JsonResponse({'datum': _read_json(_get_abs_path(u'output/nCovMemory/proj.json'))})
@@ -109,3 +110,23 @@ def get_htree(request):
         'message': 'success',
         'data': utils.read_json(_get_abs_path(u'output/nCovMemory/htree.json'))
     })
+
+
+def get_docs(request):
+    params = request.GET
+    print(params.get("id"))
+    doc = models.Document.objects.values('content').filter(did=int(params.get('id')))
+    doc = list(doc)
+    if doc:
+        return JsonResponse({
+            'code': 0,
+            'message': 'success',
+            'data': {
+                'text': doc[0]['content']
+            }
+        })
+    else:
+        return JsonResponse({
+            'code': 404,
+            'message': '找不到...',
+        })

@@ -3,19 +3,31 @@
     <div id="tree"></div>
     <div id="control">
       <div>
-        文档ID：<input type="text" v-model="docid"/>
+        文档ID：
+        <input type="text" v-model="docid" />
         <input type="button" value="确定" @click="search" />
+        <input type="button" value="查看原文" @click="getDoc" />
+        <!-- <input type="button" value="设置标签" @click="setLabel" /> -->
       </div>
       <div>
         <input type="radio" value="keywords" v-model="wordtype" />关键词
         <input type="radio" value="commonwords" v-model="wordtype" />普通词
       </div>
-      <div> 关键词 topK：<input type="text" v-model="topK" /></div>
+      <div>
+        关键词 topK：
+        <input type="text" v-model="topK" />
+      </div>
       <div class="wordlist">
         <p class="p-word">查询文档：{{ids}}</p>
         <p v-for="item of wordlist" :key="item.key" class="p-word">{{item.value}}</p>
       </div>
     </div>
+    <el-dialog :title="'文档ID：'+docid" :visible.sync="dialogVisible" width="85%">
+      <span>{{doctext}}</span>
+      <span slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="dialogVisible = false">确 定</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 <script>
@@ -31,12 +43,15 @@ export default {
       wordlist: [],
       ids: [],
       topK: 20,
+      color: null,
+      dialogVisible: false,
+      doctext: null
     };
   },
   mounted() {
     let that = this;
     getRequest("/htree", {}, function(res) {
-      // console.log(res.data)
+      console.log(res.data);
       that.renderTree(res.data);
     });
   },
@@ -47,26 +62,37 @@ export default {
       let screenHeight = document.body.clientHeight;
       let width = screenWidth * 0.7,
         height = screenHeight;
+      // let color = d3.scaleSequential().domain([0, 1]).interpolate(d3.interpolateYlGn);
+      // var color = d3
+      //   .scaleSequential(d3.interpolateLab("white", "#00EBEB"))
+      //   .domain([0, 1]);
+      let colorlevel = ["#FF1A00", "#FF9900", "#E6FF00", "#66FF00", "#00A779"];
+      this.color = d3
+        .scaleQuantize()
+        .domain([0, 1])
+        .range(colorlevel);
       let svg = d3
         .select("#tree")
         .append("svg")
         .attr("width", width)
         .attr("height", height);
+      let colorbar = svg.append("g");
+      let colorRectWidth = 20,
+        colorRectHeight = 20;
+      colorbar
+        .selectAll("rect")
+        .data(colorlevel)
+        .enter()
+        .append("rect")
+        .attr("x", (d, i) => i * colorRectWidth)
+        .attr("y", 0)
+        .attr("width", colorRectWidth)
+        .attr("height", colorRectHeight)
+        .attr("fill", (d, i) => colorlevel[i])
+        .attr("stroke", "black");
       let g = svg.append("g");
       let cluster = d3.cluster().size([2 * Math.PI, height / 2 - 50]);
       svg.call(d3.zoom().on("zoom", zoomed));
-      // svg
-      //   .append("rect")
-      //   .attr("width", width)
-      //   .attr("height", height)
-      //   .style("fill", "none")
-      //   .style("pointer-events", "all")
-      //   .call(
-      //     d3
-      //       .zoom()
-      //       // .scaleExtent([1 / 2, 4])
-      //       .on("zoom", zoomed)
-      //   );
 
       function zoomed() {
         g.attr("transform", d3.event.transform);
@@ -161,8 +187,16 @@ export default {
       node
         .append("circle")
         .attr("r", 2)
-        .attr("fill", "steelblue")
-        .attr("opacity", 0.3)
+        .attr("fill", function(d) {
+          if (d.children != undefined) {
+            return that.color(d.data.distance);
+          } else {
+            return "#00EBEB";
+          }
+        })
+        .attr("stroke", "black")
+        .attr("stroke-width", 0.5)
+        .attr("opacity", 0.5)
         .on("click", function(d, i) {
           that.docid = d.data.name;
           that.ids = that.preOrder(d);
@@ -180,19 +214,23 @@ export default {
     },
     search() {
       let docid = parseInt(this.docid);
+      let that = this;
       d3.select("svg")
         .selectAll("circle")
-        .attr("fill", function(d) {
-          if (d.data.name == docid) {
-            console.log(d.data);
-            return "red";
-          } else {
-            return "steelblue";
-          }
-        })
+        // .attr("fill", function(d, i) {
+        //   if (d.data.name == docid) {
+        //     return "red";
+        //   } else {
+        //     if(d.children == undefined) {
+        //       return "#00EBEB";
+        //     } else {
+        //       return that.color(d.data.distance);
+        //     }
+        //   }
+        // })
         .attr("r", function(d) {
           if (d.data.name == docid) {
-            return 8;
+            return 10;
           } else {
             return 2;
           }
@@ -246,16 +284,32 @@ export default {
         }
       }
       return ids;
+    },
+    getDoc() {
+      if (this.docid == null) {
+        return;
+      }
+      let that = this;
+      this.dialogVisible = true;
+      getRequest(
+        "/documents/",
+        {
+          id: that.docid
+        },
+        function(res) {
+          that.doctext = res.data.text;
+        }
+      );
     }
   },
   watch: {
     wordtype(n, o) {
-      this.getWords()
+      this.getWords();
     },
     topK(n, o) {
       this.getWords();
     }
-  },
+  }
 };
 </script>
 <style lang="scss" scoped>

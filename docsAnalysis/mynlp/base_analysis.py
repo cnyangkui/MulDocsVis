@@ -120,15 +120,15 @@ def get_common_words(corpus, ids=list()):
         list, 公共词
     """
     intersection = set()
-    count = 0
+    flag = True
     for id in ids:
         bow = corpus['doc2bow'][int(id)]
         wordset = set(map(lambda d: d[0], bow))
-        if count == 0:
+        if flag:
             intersection = wordset
+            flag = False
         else:
             intersection = intersection & wordset
-        count += 1
     return [corpus['dictionary'][wordindex] for wordindex in intersection]
 
 
@@ -148,16 +148,16 @@ def jieba_extra_keywords_from_doc(sentence='', topK=20, withWeight=False):
 def jieba_extra_keywords_from_docs(sentences=list(), topK=20):
     """使用jieba抽取多个文本的公共关键词"""
     common_keywords = set()
-    count = 0
+    flag = True
     for sentence in sentences:
         keywords = jieba.analyse.extract_tags(sentence, topK=topK, withWeight=False, allowPOS=(
             'n', 'nr', 'ns', 'nt', 'nw', 'nz', 'a', 'v', 'vn', 'x', 'PER', 'LOC', 'ORG'))
         keywords = set(keywords)
-        if count == 0:
+        if flag:
             common_keywords = keywords
+            flag = False
         else:
             common_keywords = common_keywords & keywords
-        count += 1
     return list(common_keywords)
 
 
