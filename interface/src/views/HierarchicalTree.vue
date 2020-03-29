@@ -109,6 +109,8 @@ export default {
 
       update(root);
 
+      console.log(root)
+
       // Collapse the node and all it's children
       function collapse(d) {
         if (d.children) {
@@ -357,6 +359,7 @@ export default {
         getRequest(
           "/keywords/",
           {
+            type: "common",
             ids: that.ids,
             topK: parseInt(that.topK)
           },
@@ -406,6 +409,7 @@ export default {
       getRequest(
         "/documents/",
         {
+          type: "single",
           id: that.docid
         },
         function(res) {

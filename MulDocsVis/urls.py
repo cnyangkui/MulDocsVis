@@ -30,5 +30,6 @@ urlpatterns = [
     path('api/keywords/', views.get_keywords),
     path('api/htree/', views.get_htree),
     path('api/documents/', views.get_docs),
+    path('api/optimizedTree/', views.get_optimized_tree),
 
 ]

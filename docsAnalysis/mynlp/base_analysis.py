@@ -74,7 +74,7 @@ def similarity_by_ids(corpus, id1, id2):
     return res[id2]
 
 
-def extra_keywords_by_id(corpus, id=None, n_min=5, ratio=0.05, with_weight=False):
+def extra_keywords_by_id(corpus, id=None, topK=5, ratio=0.05, withWeight=False):
     """
     抽取文档id为docid的关键词，关键词按权重降序排列
     Args:
@@ -91,25 +91,35 @@ def extra_keywords_by_id(corpus, id=None, n_min=5, ratio=0.05, with_weight=False
         return None
     words = corpus['tfidfcorpus'][int(id)]
     n_radio = math.floor(len(words) * ratio)
-    n = n_radio if n_radio > n_min else n_min
+    n = n_radio if n_radio > topK else topK
     words.sort(key=lambda d: d[1], reverse=True)
     words = words[:n + 1]
-    if with_weight:
+    if withWeight:
         return list(map(lambda d: (corpus['dictionary'][d[0]], d[1]), words))
     else:
         return list(map(lambda d: corpus['dictionary'][d[0]], words))
 
 
-def get_common_keywords(corpus, ids=list(), n_min=5, ratio=0.05):
+def get_common_keywords(corpus, ids=list(), withWeight=5, ratio=0.05):
     """获取文档公共的关键词"""
     intersection = set()
+    flag = True
     for id in ids:
-        words = set(extra_keywords_by_id(corpus, int(id), n_min=n_min, ratio=ratio))
-        if intersection:
-            intersection = intersection & words
-        else:
+        words = set(extra_keywords_by_id(corpus, int(id), withWeight=withWeight, ratio=ratio))
+        if flag:
             intersection = words
+            flag = False
+        else:
+            intersection = intersection & words
     return list(intersection)
+
+
+def get_keywords_by_ids(corpus, ids=list(), topK=5):
+    keywords = []
+    for id in ids:
+        words = extra_keywords_by_id(corpus, int(id), topK=topK, ratio=0)
+        keywords.append({'id': id, 'words': words})
+    return keywords
 
 
 def get_common_words(corpus, ids=list()):
@@ -145,6 +155,14 @@ def jieba_extra_keywords_from_doc(sentence='', topK=20, withWeight=False):
     return keywords
 
 
+def jieba_extra_keywords_from_bigdoc(sentences=list(), topK=20, withWeight=False):
+    """将若干个文档合并成一个大文档，然后使用jieba抽取关键词"""
+    bigdoc = ''
+    for sentence in sentences:
+        bigdoc += sentence
+    return jieba_extra_keywords_from_doc(bigdoc, topK=topK, withWeight=withWeight)
+
+
 def jieba_extra_keywords_from_docs(sentences=list(), topK=20):
     """使用jieba抽取多个文本的公共关键词"""
     common_keywords = set()
@@ -162,10 +180,9 @@ def jieba_extra_keywords_from_docs(sentences=list(), topK=20):
 
 
 def lda(corpus, num_topics=10, num_words=20):
-    lda = models.LdaModel(corpus=corpus['doc2bow'], id2word=corpus['dictionary'], num_topics=num_topics)
+    lda = models.LdaModel(corpus=corpus['tfidfcorpus'], id2word=corpus['dictionary'], num_topics=num_topics)
     pprint.pprint(lda.print_topics(num_topics=num_topics, num_words=num_words))  # 把所有的主题打印出来看看
 
-
 # corpus = wr_tmp_data.load_corpus_base_info()
-# lda(corpus, 100, 100)
+# lda(corpus, 50, 10)
 # get_common_words(corpus, [1, 2, 3])
