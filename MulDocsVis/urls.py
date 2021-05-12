@@ -22,7 +22,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', TemplateView.as_view(template_name="index.html")),
     path('proj/', views.proj),
-    path('similarity/', views.similarity),
+    path('api/similarity/', views.similarity),
     path('extra_keywords_by_id/', views.extra_keywords_by_id),
     path('similarity_by_id/', views.similarity_by_id),
     path('similarity_by_ids/', views.similarity_by_ids),

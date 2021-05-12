@@ -425,7 +425,7 @@ export default {
           getRequest(
             "/keywords/",
             {
-              type: "multiple",
+              type: "common",
               ids: instance.ids,
               topK: 50
             },
@@ -580,6 +580,7 @@ export default {
   #control {
     width: 30%;
     height: 100%;
+    overflow-y: auto;
     float: left;
     // border: 1px solid grey;
 
@@ -590,11 +591,11 @@ export default {
       // border: 1px solid grey;
     }
     .docs-panel {
-      height: 600px;
+      height: 100%;
       overflow-y: auto;
 
       .doc-panel {
-        height: 300px;
+        height: 90%;
         overflow-y: auto;
         margin-bottom: 5px;
         border: 1px solid gray;

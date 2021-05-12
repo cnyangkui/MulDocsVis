@@ -2,10 +2,8 @@
 import os
 import math
 import pprint
-from functools import reduce
 
 from gensim import corpora, models, similarities, matutils
-from gensim.test.utils import get_tmpfile
 import numpy as np
 import jieba
 import jieba.analyse
@@ -74,6 +72,19 @@ def similarity_by_ids(corpus, id1, id2):
     return res[id2]
 
 
+def similarity_by_group(corpus, ids, threshold=0.5):
+    res = []
+    length = len(ids)
+    ids = [int(i) for i in ids]
+    matrix = np.array(corpus['similarity'])
+    for i in range(length-1):
+        for j in range(i+1, length):
+            value = matrix[ids[i]][ids[j]]
+            if value > threshold:
+                res.append({'source': ids[i], 'target': ids[j],
+                            'similarity': round(float(value), 5)})
+    return res
+
 def extra_keywords_by_id(corpus, id=None, topK=5, ratio=0.05, withWeight=False):
     """
     抽取文档id为docid的关键词，关键词按权重降序排列
@@ -93,7 +104,7 @@ def extra_keywords_by_id(corpus, id=None, topK=5, ratio=0.05, withWeight=False):
     n_radio = math.floor(len(words) * ratio)
     n = n_radio if n_radio > topK else topK
     words.sort(key=lambda d: d[1], reverse=True)
-    words = words[:n + 1]
+    words = words[:n]
     if withWeight:
         return list(map(lambda d: (corpus['dictionary'][d[0]], d[1]), words))
     else:
@@ -179,10 +190,12 @@ def jieba_extra_keywords_from_docs(sentences=list(), topK=20):
     return list(common_keywords)
 
 
-def lda(corpus, num_topics=10, num_words=20):
-    lda = models.LdaModel(corpus=corpus['tfidfcorpus'], id2word=corpus['dictionary'], num_topics=num_topics)
+def lda(corpus, num_topics=10, num_words=10):
+    lda = models.LdaModel(corpus=corpus['doc2bow'], id2word=corpus['dictionary'], num_topics=num_topics)
     pprint.pprint(lda.print_topics(num_topics=num_topics, num_words=num_words))  # 把所有的主题打印出来看看
 
-# corpus = wr_tmp_data.load_corpus_base_info()
-# lda(corpus, 50, 10)
-# get_common_words(corpus, [1, 2, 3])
+
+# lda(corpus, 100)
+# print(similarity_by_id(corpus, 1))
+# print(corpus['similarity'].similarity_by_id(1))
+

@@ -22,7 +22,18 @@ def proj(request):
 
 
 def similarity(request):
-    pass
+    params = request.GET
+    type = params['type']
+    if type == 'group':
+        data = base_analysis.similarity_by_group(corpus, ids=params.getlist('ids'),
+                                                 threshold=float(params.get('threshold', 0.5)))
+    return JsonResponse({
+        'code': 0,
+        'message': 'success',
+        'data': {
+            'similarity': data
+        }
+    })
 
 
 def extra_keywords_by_id(request):
@@ -39,19 +50,19 @@ def get_keywords(request):
     params = request.GET
     # 使用根据数据集构造的TF-IDF模型抽取关键词
     ids = params.getlist('ids', list())
-    switch = {
-        "single": lambda ids, topK, ratio, withWeight: base_analysis.extra_keywords_by_id(corpus, id=ids[0],
-                                                                                            topK=topK, ratio=ratio,
-                                                                                            withWeight=withWeight),
-        "multiple": lambda ids, topK, ratio, withWeight: base_analysis.get_common_keywords(corpus, ids=ids,
-                                                                                             withWeight=withWeight,
-                                                                                             ratio=ratio),
-        "doc2keywords": lambda ids, topK, ratio, withWeight: base_analysis.get_keywords_by_ids(corpus, ids=ids,
-                                                                                             topK=topK)
-    }
     type = params['type']
-    keywords = switch[type](params.getlist('ids'),
-                            int(params.get('topK', 20)), float(params.get('ratio', 0.05)), params.get('withWeight'))
+    if type == 'single':
+        data = base_analysis.extra_keywords_by_id(corpus, id=ids[0], topK=int(params.get('topK', 20)),
+                                                  ratio=float(params.get('ratio', 0.05)),
+                                                  withWeight=params.get('withWeight'))
+    elif type == 'common':
+        data = base_analysis.get_common_keywords(corpus, ids=ids,
+                                                 withWeight=params.get('withWeight'),
+                                                 ratio=float(params.get('ratio', 0.05))),
+        data = data[0]
+    elif type == 'doc2keywords':
+        data = base_analysis.get_keywords_by_ids(corpus, ids=ids,
+                                                 topK=int(params.get('topK', 20)))
 
     # 使用jieba抽取关键词
     # ids = params.getlist('ids', list())
@@ -76,7 +87,7 @@ def get_keywords(request):
         'code': 0,
         'message': 'success',
         'data': {
-            'keywords': keywords
+            'keywords': data
         }
     })
 
@@ -110,7 +121,6 @@ def similarity_by_ids(request):
 
 def get_htree(request):
     root = utils.read_json(_get_abs_path(u'output/nCovMemory/htree.json'))
-    # root = hierarchical_tree.optimize_tree(root, 5)
     return JsonResponse({
         'code': 0,
         'message': 'success',
@@ -143,7 +153,6 @@ def get_docs(request):
 def get_optimized_tree(request):
     tree_data = utils.read_json(_get_abs_path(u'output/nCovMemory/htree.json'))
     tree_data = hierarchical_tree.optimize_tree(tree_data, 10)
-    # subtrees = hierarchical_tree.level_order(tree_data, 1)
     return JsonResponse({
         'code': 0,
         'message': 'success',

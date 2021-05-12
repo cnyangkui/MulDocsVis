@@ -1,15 +1,12 @@
 import math
 from queue import Queue
-from scipy.cluster.hierarchy import linkage, dendrogram
-import pprint
+from scipy.cluster.hierarchy import linkage
 
 from docsAnalysis.mynlp import wr_tmp_data
 from docsAnalysis.mynlp import base_analysis
 from docsAnalysis.dataprocess import utils
 
 corpus = wr_tmp_data.load_corpus_base_info()
-# data = base_analysis.build_tfidf_vsm(corpus)
-# print(data.shape)
 
 def generate_tree(corpus):
     data = base_analysis.build_tfidf_vsm(corpus)
@@ -47,14 +44,14 @@ def optimize_tree(root, n_layer):
             if 'distance' in left:
                 left['layer'] = math.ceil(left['distance'] * n_layer)
             else:
-                left['layer'] = n_layer
+                left['layer'] = -1
             left['parent'] = node
             queue.put(left)
             right = node['children'][1]
             if 'distance' in right:
                 right['layer'] = math.ceil(right['distance'] * n_layer)
             else:
-                right['layer'] = n_layer
+                right['layer'] = -1
             right['parent'] = node
             queue.put(right)
     optimize_tree_core(root['children'][0], n_layer)
@@ -80,8 +77,6 @@ def optimize_tree_core(root, n_layer):
     if 'children' not in root:
         return
     parent = root['parent']
-    # parent_dist = math.floor(parent['distance'] * n_layer)
-    # dist = math.floor(root['distance'] * n_layer)
     left = root['children'][0]
     right = root['children'][1]
     if parent['layer'] == root['layer']:
@@ -109,17 +104,3 @@ def level_order(root, threshold):
                 else:
                     subtrees.append(child)
     return subtrees
-
-
-# root = generate_tree(corpus)
-# utils.write_json(root, '../output/nCovMemory/htree.json')
-
-# root = utils.read_json(u'../output/nCovMemory/htree.json')
-# subtrees = level_order(root, 0.8)
-# subtrees = list(filter(lambda d: d['size']>2, subtrees))
-# for tree in subtrees:
-#     print(tree)
-# print(len(subtrees))
-# pprint.pprint(root)
-
-# optimize_tree(root, 5)

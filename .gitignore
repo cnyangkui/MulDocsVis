@@ -4,6 +4,7 @@ node_modules
 dist
 __pycache__
 package-lock.json
+venv
 
 # local env files
 .env.local

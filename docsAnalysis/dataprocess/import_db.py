@@ -13,6 +13,7 @@ django.setup()
 from docsAnalysis.models import Document
 from docsAnalysis.dataprocess import corpus_reader
 
+
 def import_doc_content(all_docs):
     for index, doc in enumerate(all_docs):
         doc = Document(did=index, content=doc)

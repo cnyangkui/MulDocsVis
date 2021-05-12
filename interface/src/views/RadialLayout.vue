@@ -27,7 +27,8 @@ export default {
       },
       processedData: {
         selectedSubTree: null,
-        keywords: null
+        keywords: null,
+        doc2keywords: null,
       },
       docNum: 5,
       wordlist: []
@@ -36,7 +37,6 @@ export default {
   mounted() {
     let instance = this;
     getRequest("/optimizedTree", {}, function(res) {
-      console.log(res.data);
       instance.renderChart(res.data);
     });
   },
@@ -44,16 +44,15 @@ export default {
     renderChart(data) {
       let instance = this;
       instance.requestData.optimizedTree = data;
-      // var data = [1, 1, 2, 3, 5, 8, 13];
-      data = data.children;
-      for (let i = 0; i < data.length; i++) {
-        data[i].leaf = instance.getLeafNodes(data[i]);
-        data[i].size = data[i].leaf.length;
+      // let data = [1, 1, 2, 3, 5, 8, 13];
+      let children = data.children;
+      for (let i = 0; i < children.length; i++) {
+        children[i].leaf = instance.getLeafNodes(children[i]);
+        children[i].size = children[i].leaf.length;
       }
-      data = data.filter(d => d.size > 5);
-      instance.processedData.selectedSubTree = data;
-      console.log(instance.requestData.optimizedTree);
-      console.log(instance.processedData.selectedSubTree);
+      children.sort((a, b) => b.size - a.size);
+      children = children.filter(d => d.size > 5);
+      instance.processedData.selectedSubTree = children;
 
       let screenWidth = document.body.clientWidth;
       let screenHeight = document.body.clientHeight;
@@ -65,12 +64,12 @@ export default {
         .append("svg")
         .attr("width", width)
         .attr("height", height);
-      let g_all = svg.append("g");
+      let g_all = svg.append("g").attr("class", "all");
       let g_arc = g_all.append("g").attr("class", "arc");
 
       let radius = Math.min(width, height) / 2 - 30;
 
-      var colors = [
+      let colors = [
         "#1f77b4",
         "#ff7f0e",
         "#2ca02c",
@@ -88,14 +87,14 @@ export default {
         .padAngle(0.01)
         .value(d => d.size);
 
-      console.log(d3.sum(data, d => d.size));
+      console.log(d3.sum(children, d => d.size));
 
       let arc = d3
         .arc()
         .innerRadius(radius - 10)
         .outerRadius(radius);
 
-      var arcs = pie(data);
+      let arcs = pie(children);
 
       g_arc
         .selectAll("path")
@@ -103,10 +102,212 @@ export default {
         .join("path")
         .attr("fill", "steelblue")
         .attr("d", arc)
-        .attr("transform", `translate(${width / 2},${height / 2})`);
+        .attr("transform", `translate(${width / 2},${height / 2})`)
+        .on("click", function(d) {
+          console.log(d);
+        });
 
+      let g_nodes = g_all.append("g").attr("class", "ddd");
+      g_nodes
+        .selectAll("circle")
+        .data(arcs)
+        .enter()
+        .append("circle")
+        .attr("r", 2)
+        .attr("cx", function(d) {
+          return (
+            width / 2 +
+            ((radius * Math.cos((d.startAngle + d.endAngle - Math.PI) / 2)) /
+              4) *
+              3
+          );
+        })
+        .attr("cy", function(d) {
+          return (
+            height / 2 +
+            ((radius * Math.sin((d.startAngle + d.endAngle - Math.PI) / 2)) /
+              4) *
+              3
+          );
+        });
+
+      instance.requestKeywords();
+
+      // instance.nodelink(children, arcs, width, height, radius);
+    },
+    nodelink(subtrees, arcs, width, height, radius) {
+      console.log(arcs.length);
+      let nodes = [],
+        links = [];
+      let ids = [];
+      arcs.forEach(d => {
+        nodes.push({
+          id: d.data.name,
+          type: "fixed",
+          x:
+            // width / 2 +
+            ((radius * Math.cos((d.startAngle + d.endAngle - Math.PI) / 2)) /
+              4),
+          y:
+            // height / 2 +
+            ((radius * Math.sin((d.startAngle + d.endAngle - Math.PI) / 2)) /
+              4) 
+        });
+        d.data.leaf.forEach(v => {
+          ids.push(v);
+          nodes.push({ id: v, type: "unfixed" });
+          links.push({ source: d.data.name, target: v });
+        });
+      });
+      console.log(ids);
+      getRequest(
+        "/similarity/",
+        {
+          type: "group",
+          ids: ids,
+          threshold: 0.5
+        },
+        function(res) {
+          links = links.concat(res.data.similarity);
+          // console.log(links.length);
+          // console.log(res.data.similarity.length);
+
+          var nodesCopy = {};
+          nodes.forEach(node => {
+            nodesCopy[node.id] = JSON.parse(JSON.stringify(node));
+          });
+
+          var force = d3
+            .forceSimulation()
+            .force("charge", d3.forceManyBody())
+            // .force("center", d3.forceCenter(width / 2, height / 2))
+            .on("tick", tick);
+
+          force.nodes(nodes).force(
+            "link",
+            d3.forceLink(links).id(function(d) {
+              return d.id;
+            })
+          );
+
+          let g_all = d3.select("svg g.all");
+          let g_nodelink = g_all
+            .append("g")
+            .attr("class", "nodelink")
+            .attr("transform", `translate(${width / 2},${height / 2})`);
+          var g_link = g_nodelink.selectAll(".link"),
+            g_node = g_nodelink.selectAll(".node");
+
+          g_link = g_link
+            .data(links)
+            .enter()
+            .append("line")
+            .attr("class", "link");
+
+          g_node = g_node
+            .data(nodes)
+            .enter()
+            .append("circle")
+            .attr("class", "node")
+            .attr("class", d => {
+              if (d.type == "fixed") {
+                return "fixedNode";
+              } else {
+                return "unfixedNode";
+              }
+            })
+            .attr("r", 5)
+            .call(
+              d3
+                .drag()
+                .on("start", dragstart)
+                .on("drag", dragged)
+                .on("end", dragended)
+            );
+
+          g_node.append("title").text(d => d.id);
+
+          function tick() {
+            console.log("tick...........");
+            g_node
+              .attr("cx", function(d) {
+                if (d.type == "fixed") {
+                  d.fx = nodesCopy[d.id].x;
+                }
+                return d.x;
+              })
+              .attr("cy", function(d) {
+                if (d.type == "fixed") {
+                  d.fy = nodesCopy[d.id].y;
+                }
+                return d.y;
+              });
+            g_link
+              .attr("x1", function(d) {
+                return d.source.x;
+              })
+              .attr("y1", function(d) {
+                return d.source.y;
+              })
+              .attr("x2", function(d) {
+                return d.target.x;
+              })
+              .attr("y2", function(d) {
+                return d.target.y;
+              });
+          }
+
+          function dragstart(d) {
+            if (!d3.event.active) {
+              force.alphaTarget(0.1).restart();
+            }
+            d.fx = d.x;
+            d.fy = d.y;
+          }
+
+          function dragged(d) {
+            d.fx = d3.event.x;
+            d.fy = d3.event.y;
+          }
+
+          function dragended(d) {
+            if (!d3.event.active) {
+              force.alphaTarget(0);
+            }
+            d.fx = null;
+            d.fy = null;
+          }
+
+          force.on("end", function() {
+            console.log("end..");
+          });
+          // links = links.concat(res.data);
+          // console.log(links.length)
+        }
+      );
+    },
+    getNodeLinkData(subtrees) {},
+    getLeafNodes(root) {
+      let queue = [],
+        ids = [];
+      queue.push(root);
+      while (queue.length > 0) {
+        let first = queue.shift();
+        if (first.children != undefined) {
+          for (let i = 0; i < first.children.length; i++) {
+            queue.push(first.children[i]);
+          }
+        } else {
+          ids.push(first.name);
+        }
+      }
+      return ids;
+    },
+    requestKeywords() {
+      let instance = this;
       instance.processedData.keywords = [];
-      data.forEach((element, index) => {
+      instance.processedData.doc2keywords = [];
+      instance.processedData.selectedSubTree.forEach((element, index) => {
         let ids = instance.getLeafNodes(element);
         getRequest(
           "/keywords/",
@@ -139,29 +340,11 @@ export default {
               set: objArr,
               html: html
             });
+            instance.processedData.doc2keywords = instance.processedData.doc2keywords.concat(res.data.keywords);
           }
         );
       });
-    },
-    getWords(ids) {
-      let instance = this;
-      instance.wordlist = [];
-    },
-    getLeafNodes(root) {
-      let queue = [],
-        ids = [];
-      queue.push(root);
-      while (queue.length > 0) {
-        let first = queue.shift();
-        if (first.children != undefined) {
-          for (let i = 0; i < first.children.length; i++) {
-            queue.push(first.children[i]);
-          }
-        } else {
-          ids.push(first.name);
-        }
-      }
-      return ids;
+      // console.log(instance.processedData.doc2keywords)
     }
   }
 };
